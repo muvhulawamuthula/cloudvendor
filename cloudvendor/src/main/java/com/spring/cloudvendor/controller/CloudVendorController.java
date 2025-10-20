@@ -29,7 +29,7 @@ public class CloudVendorController {
         return cloudVendorService.getAllCloudVendor();
     }
 
-    @PostMapping  // Changed from @GetMapping to @PostMapping
+    @PostMapping  
     public String createCloudVendorDetails(@RequestBody CloudVendor cloudVendor) {
         cloudVendorService.createCloudVendor(cloudVendor);
         return "Cloud Vendor Created successfully!";
@@ -41,7 +41,7 @@ public class CloudVendorController {
         return "Cloud Vendor Updated successfully!";
     }
 
-    @DeleteMapping("{vendorId}")  // Fixed: changed "vendoId" to "vendorId"
+    @DeleteMapping("{vendorId}")  
     public String deleteCloudVendorDetails(@PathVariable("vendorId") String vendorId) {
         cloudVendorService.deleteCloudVendor(vendorId);
         return "Cloud Vendor Deleted successfully!";
