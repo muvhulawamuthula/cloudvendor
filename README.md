@@ -1,327 +1,183 @@
-# Cloud Vendor REST API
+# Cloud Vendor API
 
-A Spring Boot REST API application for managing cloud vendor information with full CRUD operations, JUnit 5 testing, and MySQL database integration.
+Spring Boot 3 REST service for managing cloud-vendor records. Provides full CRUD over a MySQL-backed `cloud_vendor_info` table, with a layered architecture, global exception handling, and JUnit 5 / Mockito tests.
 
-## Table of Contents
+| | |
+|---|---|
+| **Stack** | Java 17 · Spring Boot 3.5.5 · Spring Web · Spring Data JPA · MySQL · H2 (tests) · Maven |
+| **Base URL** | `http://localhost:8080/cloudvendor` |
+| **Module root** | [`cloudvendor/`](./cloudvendor) |
 
-- [Overview](#overview)
-- [Technologies Used](#technologies-used)
-- [Features](#features)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Database Configuration](#database-configuration)
-- [Running the Application](#running-the-application)
-- [API Endpoints](#api-endpoints)
-- [Testing](#testing)
-- [Project Structure](#project-structure)
-- [API Documentation](#api-documentation)
+> **Docs in this repo**
+> - [Architecture](./docs/architecture.md) — layers, data model, request flow, exceptions
+> - [API reference](./docs/api.md) — endpoints, payloads, status codes (grounded in `CloudVendorController`)
 
-## Overview
-
-This project is a RESTful web service built with Spring Boot that allows users to manage cloud vendor information. It supports creating, reading, updating, and deleting cloud vendor records stored in a MySQL database.
-
-## Technologies Used
-
-- **Java 17**
-- **Spring Boot 3.5.5**
-- **Spring Data JPA** - For database operations
-- **Spring Web** - For RESTful web services
-- **MySQL** - Production database
-- **H2 Database** - In-memory database for testing
-- **JUnit 5** - Unit and integration testing
-- **Mockito** - Mocking framework for testing
-- **Maven** - Dependency management and build tool
-- **Jackson** - JSON processing
+---
 
 ## Features
 
-- ✅ Create new cloud vendor records
-- ✅ Retrieve individual vendor details by ID
-- ✅ Retrieve all cloud vendors
-- ✅ Update existing vendor information
-- ✅ Delete vendor records
-- ✅ Search vendors by name
-- ✅ Custom exception handling
-- ✅ Comprehensive unit and integration tests
-- ✅ RESTful API design
+- Create, read, update, and delete cloud-vendor records
+- Get-by-ID responses wrapped in a consistent envelope (`ResponseHandler`)
+- `CloudVendorNotFoundException` mapped to HTTP 404 via `@ControllerAdvice`
+- Service-layer lookup by vendor name (`findByVendorName`) — available in the service/repository; not yet exposed as a REST route
+- Unit tests for controller (MockMvc), service (Mockito), and repository layers
 
-## Prerequisites
+---
 
-Before you begin, ensure you have the following installed:
+## Quick start
 
-- Java Development Kit (JDK) 17 or higher
-- Maven 3.6 or higher
-- MySQL 8.0 or higher
-- Your favorite IDE (IntelliJ IDEA, Eclipse, VS Code, etc.)
+### Prerequisites
 
-## Installation
+- JDK 17+
+- Maven 3.6+ (or use the included Maven Wrapper: `./mvnw`)
+- MySQL 8.x running locally (or reachable from your machine)
 
-1. **Clone the repository:**
-   ```bash
-   git clone <repository-url>
-   cd cloudvendor
-   ```
+### Clone and build
 
-2. **Build the project:**
-   ```bash
-   mvn clean install
-   ```
-
-## Database Configuration
-
-1. **Create MySQL Database:**
-   ```sql
-   CREATE DATABASE cloud_vendor_db;
-   ```
-
-2. **Configure Database Connection:**
-
-   Update `src/main/resources/application.properties`:
-   ```properties
-   # MySQL Configuration
-   spring.datasource.url=jdbc:mysql://localhost:3306/cloud_vendor_db
-   spring.datasource.username=your_username
-   spring.datasource.password=your_password
-   spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
-
-   # JPA Configuration
-   spring.jpa.hibernate.ddl-auto=update
-   spring.jpa.show-sql=true
-   spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect
-   spring.jpa.properties.hibernate.format_sql=true
-   ```
-
-3. **For Testing (Optional):**
-
-   Create `src/test/resources/application.properties`:
-   ```properties
-   # H2 In-Memory Database for Testing
-   spring.datasource.url=jdbc:h2:mem:testdb
-   spring.datasource.driver-class-name=org.h2.Driver
-   spring.jpa.hibernate.ddl-auto=create-drop
-   spring.jpa.show-sql=true
-   ```
-
-## Running the Application
-
-1. **Using Maven:**
-   ```bash
-   mvn spring-boot:run
-   ```
-
-2. **Using Java:**
-   ```bash
-   mvn clean package
-   java -jar target/cloudvendor-0.0.1-SNAPSHOT.jar
-   ```
-
-3. **From IDE:**
-    - Run the `CloudvendorApplication.java` main class
-
-The application will start on `http://localhost:8080`
-
-## API Endpoints
-
-### Base URL: `http://localhost:8080/cloudvendor`
-
-| Method | Endpoint | Description | Request Body |
-|--------|----------|-------------|--------------|
-| GET | `/{vendorId}` | Get vendor by ID | - |
-| GET | `/` | Get all vendors | - |
-| POST | `/` | Create new vendor | CloudVendor JSON |
-| PUT | `/` | Update vendor | CloudVendor JSON |
-| DELETE | `/{vendorId}` | Delete vendor | - |
-
-### Request/Response Examples
-
-#### Create Cloud Vendor (POST `/cloudvendor/`)
-**Request Body:**
-```json
-{
-  "vendorId": "1",
-  "vendorName": "Amazon",
-  "vendorAddress": "USA",
-  "vendorPhoneNumber": "1234567890"
-}
+```bash
+git clone https://github.com/muvhulawamuthula/cloudvendor.git
+cd cloudvendor/cloudvendor
+./mvnw clean install
 ```
 
-**Response:**
-```
-Cloud Vendor Created successfully!
+### Configure the database
+
+1. Create the schema (name matches `application.yaml`):
+
+```sql
+CREATE DATABASE cloud_vendor;
 ```
 
-#### Get Cloud Vendor (GET `/cloudvendor/1`)
-**Response:**
-```json
-{
-  "message": "Requested Vendor Details are Given here",
-  "status": "OK",
-  "data": {
+2. Set credentials via environment overrides or edit `src/main/resources/application.yaml`. Prefer env vars so secrets never land in git:
+
+```bash
+export SPRING_DATASOURCE_URL='jdbc:mysql://localhost:3306/cloud_vendor?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true'
+export SPRING_DATASOURCE_USERNAME='root'
+export SPRING_DATASOURCE_PASSWORD='your_password'
+```
+
+Default JPA settings in the repo:
+
+| Property | Value | Notes |
+|----------|-------|-------|
+| `spring.jpa.hibernate.ddl-auto` | `create` | Recreates schema on startup — fine for local demos; switch to `validate` / `update` for shared environments |
+| Entity table | `cloud_vendor_info` | Mapped on `CloudVendor` via `@Table` |
+| Dialect | `MySQL8Dialect` | |
+
+### Run
+
+```bash
+./mvnw spring-boot:run
+# or
+./mvnw clean package && java -jar target/cloudvendor-0.0.1-SNAPSHOT.jar
+```
+
+App listens on **http://localhost:8080**.
+
+Smoke-check:
+
+```bash
+curl -s http://localhost:8080/cloudvendor | jq
+```
+
+---
+
+## API at a glance
+
+Full contract: [docs/api.md](./docs/api.md).
+
+| Method | Path | Description | Response shape |
+|--------|------|-------------|----------------|
+| `GET` | `/cloudvendor/{vendorId}` | Fetch one vendor | Envelope: `massage`, `httpStatus`, `data` |
+| `GET` | `/cloudvendor` | List all vendors | `CloudVendor[]` |
+| `POST` | `/cloudvendor` | Create vendor | Plain text success message |
+| `PUT` | `/cloudvendor` | Update vendor (full body, including `vendorId`) | Plain text success message |
+| `DELETE` | `/cloudvendor/{vendorId}` | Delete vendor | Plain text success message |
+
+Example create:
+
+```bash
+curl -s -X POST http://localhost:8080/cloudvendor \
+  -H 'Content-Type: application/json' \
+  -d '{
     "vendorId": "1",
     "vendorName": "Amazon",
     "vendorAddress": "USA",
     "vendorPhoneNumber": "1234567890"
-  }
-}
+  }'
 ```
 
-#### Get All Cloud Vendors (GET `/cloudvendor/`)
-**Response:**
-```json
-[
-  {
-    "vendorId": "1",
-    "vendorName": "Amazon",
-    "vendorAddress": "USA",
-    "vendorPhoneNumber": "1234567890"
-  },
-  {
-    "vendorId": "2",
-    "vendorName": "Oracle",
-    "vendorAddress": "SA",
-    "vendorPhoneNumber": "0987654321"
-  }
-]
+---
+
+## Project layout
+
+Application code lives under the nested `cloudvendor/` Maven module (IDE metadata under `.idea/` is ignored).
+
+```
+cloudvendor/                          # GitHub repo root
+├── README.md
+├── docs/
+│   ├── architecture.md
+│   └── api.md
+└── cloudvendor/                      # Maven project
+    ├── pom.xml
+    ├── mvnw / mvnw.cmd
+    └── src/
+        ├── main/java/com/spring/cloudvendor/
+        │   ├── CloudvendorApplication.java
+        │   ├── controller/CloudVendorController.java
+        │   ├── model/CloudVendor.java
+        │   ├── repository/CloudVendorRepository.java
+        │   ├── service/CloudVendorService.java
+        │   ├── service/impl/CloudVendorServiceImpl.java
+        │   ├── exception/
+        │   │   ├── CloudVendorException.java
+        │   │   ├── CloudVendorExceptionHandler.java
+        │   │   └── CloudVendorNotFoundException.java
+        │   └── response/ResponseHandler.java
+        ├── main/resources/
+        │   ├── application.properties   # spring.application.name
+        │   └── application.yaml         # datasource + JPA
+        └── test/
+            ├── java/...                 # controller / service / repository tests
+            └── resources/application.yaml  # H2 for tests
 ```
 
-#### Update Cloud Vendor (PUT `/cloudvendor/`)
-**Request Body:**
-```json
-{
-  "vendorId": "1",
-  "vendorName": "Amazon Web Services",
-  "vendorAddress": "USA",
-  "vendorPhoneNumber": "1234567890"
-}
-```
-
-**Response:**
-```
-Cloud Vendor Updated successfully!
-```
-
-#### Delete Cloud Vendor (DELETE `/cloudvendor/1`)
-**Response:**
-```
-Cloud Vendor Deleted successfully!
-```
+---
 
 ## Testing
 
-The project includes comprehensive unit and integration tests using JUnit 5 and Mockito.
+Tests use **H2** (`src/test/resources/application.yaml`) so MySQL is not required for CI or local `mvn test`.
 
-### Run All Tests:
 ```bash
-mvn test
+cd cloudvendor
+./mvnw test
+./mvnw test -Dtest=CloudVendorControllerTest
 ```
 
-### Run Specific Test Class:
-```bash
-mvn test -Dtest=CloudVendorControllerTest
-```
+| Layer | Class | Approach |
+|-------|-------|----------|
+| Controller | `CloudVendorControllerTest` | `@WebMvcTest` + MockMvc + `@MockBean` service |
+| Service | `CloudVendorServiceImplTest` | Mockito against the repository |
+| Repository | `CloudVendorRepositoryTest` | Spring Data / H2 integration |
 
-### Test Coverage:
-- **Controller Tests**: Testing REST endpoints with MockMvc
-- **Service Tests**: Testing business logic with mocked repositories
-- **Repository Tests**: Testing data access layer
+---
 
-### Test Structure:
-```
-src/test/java/com/spring/cloudvendor/
-├── controller/
-│   └── CloudVendorControllerTest.java
-├── service/
-│   └── CloudVendorServiceTest.java
-└── repository/
-    └── CloudVendorRepositoryTest.java
-```
+## Configuration notes
 
-## Project Structure
+- **Port conflict**: set `server.port` in `application.properties` / YAML or `SERVER_PORT=8081`.
+- **MySQL connection failures**: confirm the `cloud_vendor` database exists and that `SPRING_DATASOURCE_*` values match your local server.
+- **Schema wiped on restart**: current `ddl-auto: create` drops and recreates tables at startup — intentional for demos, not for durable data.
+- **Secrets**: do not commit real DB passwords. Override via environment or a local, gitignored profile.
 
-```
-cloudvendor/
-├── src/
-│   ├── main/
-│   │   ├── java/com/spring/cloudvendor/
-│   │   │   ├── controller/
-│   │   │   │   └── CloudVendorController.java
-│   │   │   ├── model/
-│   │   │   │   └── CloudVendor.java
-│   │   │   ├── repository/
-│   │   │   │   └── CloudVendorRepository.java
-│   │   │   ├── service/
-│   │   │   │   ├── CloudVendorService.java
-│   │   │   │   └── impl/
-│   │   │   │       └── CloudVendorServiceImpl.java
-│   │   │   ├── exception/
-│   │   │   │   ├── CloudVendorNotFoundException.java
-│   │   │   │   └── CloudVendorExceptionHandler.java
-│   │   │   ├── response/
-│   │   │   │   └── ResponseHandler.java
-│   │   │   └── CloudvendorApplication.java
-│   │   └── resources/
-│   │       └── application.properties
-│   └── test/
-│       ├── java/com/spring/cloudvendor/
-│       │   ├── controller/
-│       │   │   └── CloudVendorControllerTest.java
-│       │   └── service/
-│       │       └── CloudVendorServiceTest.java
-│       └── resources/
-│           └── application.properties
-|               application.yaml
-├── pom.xml
-└── README.md
-```
-
-## API Documentation
-
-For interactive API documentation, you can add SpringDoc OpenAPI:
-
-1. **Add dependency to `pom.xml`:**
-   ```xml
-   <dependency>
-       <groupId>org.springdoc</groupId>
-       <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-       <version>2.2.0</version>
-   </dependency>
-   ```
-
-2. **Access Swagger UI:**
-   ```
-   http://localhost:8080/swagger-ui/index.html
-   ```
-
-3. **API Docs JSON:**
-   ```
-   http://localhost:8080/v3/api-docs
-   ```
-
-## Common Issues and Solutions
-
-### Issue: Connection to MySQL fails
-**Solution:** Ensure MySQL is running and credentials in `application.properties` are correct.
-
-### Issue: Port 8080 already in use
-**Solution:** Change the port in `application.properties`:
-```properties
-server.port=8081
-```
-
-### Issue: Tests fail with database connection errors
-**Solution:** Ensure H2 dependency is in test scope and test properties file exists.
+---
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/YourFeature`)
-3. Commit your changes (`git commit -m 'Add some feature'`)
-4. Push to the branch (`git push origin feature/YourFeature`)
-5. Open a Pull Request
+1. Fork / branch from `main` (`feature/<name>` or `docs/<name>`).
+2. Keep changes focused; update `docs/api.md` when endpoints change.
+3. Run `./mvnw test` before opening a PR.
 
+## License & contact
 
-## Contact
-
-For questions or support, please contact [muthulamuvhulawavhofhololani@gmail.com]
-
----
+Personal learning / portfolio project. Questions: muthulamuvhulawavhofhololani@gmail.com
