@@ -295,3 +295,7 @@ server.port=8081
 For questions or support, please contact [muthulamuvhulawavhofhololani@gmail.com]
 
 ---
+
+## License
+
+MIT. See [LICENSE](LICENSE).
