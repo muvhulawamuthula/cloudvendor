@@ -1,4 +1,4 @@
-package com.spring.cloudvendor.reopsitory;
+package com.spring.cloudvendor.repository;
 
 import com.spring.cloudvendor.model.CloudVendor;
 import com.spring.cloudvendor.repository.CloudVendorRepository;

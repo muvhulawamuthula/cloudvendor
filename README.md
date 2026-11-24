@@ -58,55 +58,41 @@ Before you begin, ensure you have the following installed:
 
 1. **Clone the repository:**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/muvhulawamuthula/cloudvendor.git
    cd cloudvendor
    ```
 
 2. **Build the project:**
    ```bash
-   mvn clean install
+   ./mvnw clean install
    ```
 
 ## Database Configuration
 
-1. **Create MySQL Database:**
+1. **Create the MySQL database:**
    ```sql
-   CREATE DATABASE cloud_vendor_db;
+   CREATE DATABASE cloud_vendor;
    ```
 
-2. **Configure Database Connection:**
+2. **Provide credentials through environment variables** (read by `src/main/resources/application.yaml`):
 
-   Update `src/main/resources/application.properties`:
-   ```properties
-   # MySQL Configuration
-   spring.datasource.url=jdbc:mysql://localhost:3306/cloud_vendor_db
-   spring.datasource.username=your_username
-   spring.datasource.password=your_password
-   spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+   | Variable | Default |
+   |---|---|
+   | `DB_URL` | `jdbc:mysql://localhost:3306/cloud_vendor?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true` |
+   | `DB_USERNAME` | `root` |
+   | `DB_PASSWORD` | _(empty)_ |
 
-   # JPA Configuration
-   spring.jpa.hibernate.ddl-auto=update
-   spring.jpa.show-sql=true
-   spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect
-   spring.jpa.properties.hibernate.format_sql=true
+   ```bash
+   export DB_PASSWORD=your_password
    ```
 
-3. **For Testing (Optional):**
-
-   Create `src/test/resources/application.properties`:
-   ```properties
-   # H2 In-Memory Database for Testing
-   spring.datasource.url=jdbc:h2:mem:testdb
-   spring.datasource.driver-class-name=org.h2.Driver
-   spring.jpa.hibernate.ddl-auto=create-drop
-   spring.jpa.show-sql=true
-   ```
+3. **Tests** use an in-memory H2 database configured in `src/test/resources/application.yaml`; no MySQL needed.
 
 ## Running the Application
 
 1. **Using Maven:**
    ```bash
-   mvn spring-boot:run
+   ./mvnw spring-boot:run
    ```
 
 2. **Using Java:**
@@ -240,38 +226,22 @@ src/test/java/com/spring/cloudvendor/
 
 ```
 cloudvendor/
-├── src/
-│   ├── main/
-│   │   ├── java/com/spring/cloudvendor/
-│   │   │   ├── controller/
-│   │   │   │   └── CloudVendorController.java
-│   │   │   ├── model/
-│   │   │   │   └── CloudVendor.java
-│   │   │   ├── repository/
-│   │   │   │   └── CloudVendorRepository.java
-│   │   │   ├── service/
-│   │   │   │   ├── CloudVendorService.java
-│   │   │   │   └── impl/
-│   │   │   │       └── CloudVendorServiceImpl.java
-│   │   │   ├── exception/
-│   │   │   │   ├── CloudVendorNotFoundException.java
-│   │   │   │   └── CloudVendorExceptionHandler.java
-│   │   │   ├── response/
-│   │   │   │   └── ResponseHandler.java
-│   │   │   └── CloudvendorApplication.java
-│   │   └── resources/
-│   │       └── application.properties
-│   └── test/
-│       ├── java/com/spring/cloudvendor/
-│       │   ├── controller/
-│       │   │   └── CloudVendorControllerTest.java
-│       │   └── service/
-│       │       └── CloudVendorServiceTest.java
-│       └── resources/
-│           └── application.properties
-|               application.yaml
-├── pom.xml
-└── README.md
+├── src/main/java/com/spring/cloudvendor/
+│   ├── CloudvendorApplication.java
+│   ├── controller/CloudVendorController.java
+│   ├── exception/       CloudVendorException, CloudVendorExceptionHandler, CloudVendorNotFoundException
+│   ├── model/CloudVendor.java
+│   ├── repository/CloudVendorRepository.java
+│   ├── response/ResponseHandler.java
+│   └── service/         CloudVendorService, impl/CloudVendorServiceImpl
+├── src/main/resources/  application.properties, application.yaml
+├── src/test/java/com/spring/cloudvendor/
+│   ├── controller/CloudVendorControllerTest.java
+│   ├── repository/CloudVendorRepositoryTest.java
+│   └── service/impl/CloudVendorServiceImplTest.java
+├── src/test/resources/application.yaml
+├── mvnw, mvnw.cmd
+└── pom.xml
 ```
 
 ## API Documentation
